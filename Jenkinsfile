@@ -1,63 +1,40 @@
 pipeline {
-    agent any
-    tools{
-        jdk  'jdk11'
-        maven  'maven3'
+    agent { label 'slave01' }
+    tools {
+        maven 'Maven03'
     }
-    
-    environment{
-        SCANNER_HOME= tool 'sonar-scanner'
+    environment {
+        registryName = 'jangoregistry'
+        registryUrl = 'jangoregistry.azurecr.io'
+        registryCredential = 'c11253f0-6a37-453d-ad1a-8481993d8f3d'
     }
-    
+
     stages {
-        stage('Git Checkout') {
+        stage('Git checkout') {
             steps {
-                git branch: 'main', changelog: false, credentialsId: '15fb69c3-3460-4d51-bd07-2b0545fa5151', poll: false, url: 'https://github.com/jaiswaladi246/Shopping-Cart.git'
+                git branch: 'main', changelog: false, credentialsId: 'cfea1108-9dd2-4dae-b9dd-f37feade0b8e', poll: false, url: 'https://github.com/jerinvarghese1993/Shopping-Cart.git'
             }
         }
-        
-        stage('COMPILE') {
-            steps {
-                sh "mvn clean compile -DskipTests=true"
-            }
-        }
-        
-        stage('OWASP Scan') {
-            steps {
-                dependencyCheck additionalArguments: '--scan ./ ', odcInstallation: 'DP'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-            }
-        }
-        
-        stage('Sonarqube') {
-            steps {
-                withSonarQubeEnv('sonar-server'){
-                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Shopping-Cart \
-                   -Dsonar.java.binaries=. \
-                   -Dsonar.projectKey=Shopping-Cart '''
-               }
-            }
-        }
-        
-        stage('Build') {
+        stage('Build the artifacts') {
             steps {
                 sh "mvn clean package -DskipTests=true"
             }
         }
-        
-        stage('Docker Build & Push') {
+        stage('Build the image using docker') {
             steps {
-                script{
-                    withDockerRegistry(credentialsId: '2fe19d8a-3d12-4b82-ba20-9d22e6bf1672', toolName: 'docker') {
-                        
-                        sh "docker build -t shopping-cart -f docker/Dockerfile ."
-                        sh "docker tag  shopping-cart adijaiswal/shopping-cart:latest"
-                        sh "docker push adijaiswal/shopping-cart:latest"
+                script {
+                    dockerImage = docker.build(env.registryName, "-f docker/Dockerfile .")
+                }
+             }
+        }
+        stage('Upload to ACR') {
+            steps {
+                script {
+                    docker.withRegistry("https://${registryUrl}", registryCredential) {
+                    dockerImage.push("latest")
                     }
                 }
             }
         }
-        
-        
     }
 }
