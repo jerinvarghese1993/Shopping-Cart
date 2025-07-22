@@ -5,15 +5,15 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: shooping-cart
+      app: shopping-cart
   replicas: 2
   template:
     metadata:
       labels:
-        app: shooping-cart
+        app: shopping-cart
     spec:
       containers:
-        - name: shooping-cart
+        - name: shopping-cart
           image: jangoregistry.azurecr.io/jangoregistry:latest
           imagePullPolicy: Always
           ports:
@@ -34,7 +34,7 @@ metadata: # Metadata of the resource kind we are creating
   name: springboot-k8s-svc
 spec:
   selector:
-    app: sshooping-cart
+    app: shopping-cart
   ports:
     - protocol: "TCP"
       port: 8070 # The port that the service is running on in the cluster
